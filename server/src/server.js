@@ -2,7 +2,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PORT, SKILLS_DIR } from './config.js';
+import { PORT, SKILLS_DIR, ROOT } from './config.js';
 import { appendEvents, listSessions, getSessionEvents, clearAll } from './store.js';
 import { synthesize } from './synthesizer.js';
 import { renderMarkdown, renderPlaywright } from './renderers.js';
@@ -89,6 +89,18 @@ const server = http.createServer(async (req, res) => {
     // --- dashboard ---
     if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
       return send(res, 200, DASHBOARD_HTML);
+    }
+
+    // --- serve the demo "system" page over http (so content scripts run) ---
+    if (req.method === 'GET' && pathname.startsWith('/test-page')) {
+      let rel = pathname.replace(/^\/test-page\/?/, '') || 'index.html';
+      const file = path.join(ROOT, 'test-page', rel);
+      if (!file.startsWith(path.join(ROOT, 'test-page'))) return send(res, 403, { error: 'forbidden' });
+      if (fs.existsSync(file) && fs.statSync(file).isFile()) {
+        const type = file.endsWith('.html') ? 'text/html; charset=utf-8' : 'text/plain; charset=utf-8';
+        return send(res, 200, fs.readFileSync(file, 'utf8'), { 'content-type': type });
+      }
+      return send(res, 404, { error: 'not found' });
     }
 
     return send(res, 404, { error: 'not found' });
