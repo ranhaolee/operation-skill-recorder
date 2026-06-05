@@ -3,8 +3,18 @@
 
 const GAP_MS = 15_000; // a pause longer than this starts a new task
 
-// Split a session's events into tasks on long idle gaps or hard navigations.
-export function segment(events) {
+// Turn a session's events into tasks.
+//   default        -> ONE task per recording session (start/stop is the boundary)
+//   { split:true } -> further split on hard navigations / long idle gaps
+export function segment(events, { split = false } = {}) {
+  if (!events.length) return [];
+
+  if (!split) {
+    const first = events[0];
+    const task = { startUrl: first.pageUrl || '', startTs: first.ts, events: [...events] };
+    return task.events.some((e) => e.type === 'ui_action') ? [task] : [];
+  }
+
   const tasks = [];
   let current = null;
   let lastTs = null;

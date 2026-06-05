@@ -74,8 +74,10 @@ const server = http.createServer(async (req, res) => {
     m = pathname.match(/^\/api\/sessions\/([^/]+)\/generate$/);
     if (req.method === 'POST' && m) {
       const engine = url.searchParams.get('engine') || 'rule';
+      const name = (url.searchParams.get('name') || '').trim();
+      const split = url.searchParams.get('split') === 'true';
       const events = getSessionEvents(decodeURIComponent(m[1]));
-      const irs = await synthesize(events, engine);
+      const irs = await synthesize(events, engine, { name: name || undefined, split });
       const written = irs.map((ir) => ({ name: ir.name, dir: writeSkillFiles(ir), ir }));
       return send(res, 200, { ok: true, engine, skills: written });
     }

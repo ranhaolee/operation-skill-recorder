@@ -87,6 +87,12 @@ async function openSession(id) {
       </select>
       <button onclick="generate('\${id}')">⚙️ 生成技能</button>
     </div>
+    <div class="row">
+      <input id="skillname" placeholder="技能名称（留空则自动命名）" style="flex:1" />
+      <label class="pill" style="display:flex;align-items:center;gap:5px;white-space:nowrap">
+        <input type="checkbox" id="split" /> 按导航/停顿拆分为多个
+      </label>
+    </div>
     <div id="genout"></div>
     <h3>操作流 (Event stream)</h3>
     <div>\${evs}</div>\`;
@@ -110,9 +116,14 @@ function renderEvent(e) {
 
 async function generate(id) {
   const engine = document.getElementById('engine').value;
+  const name = document.getElementById('skillname').value.trim();
+  const split = document.getElementById('split').checked;
   const out = document.getElementById('genout');
   out.innerHTML = '<div class="pill">生成中…</div>';
-  const r = await fetch(API + '/api/sessions/' + encodeURIComponent(id) + '/generate?engine=' + engine, { method:'POST' }).then(x=>x.json());
+  const qs = new URLSearchParams({ engine });
+  if (name) qs.set('name', name);
+  if (split) qs.set('split', 'true');
+  const r = await fetch(API + '/api/sessions/' + encodeURIComponent(id) + '/generate?' + qs.toString(), { method:'POST' }).then(x=>x.json());
   if (!r.ok) { out.innerHTML = '<pre>'+esc(JSON.stringify(r,null,2))+'</pre>'; return; }
   out.innerHTML = '<h3>生成的技能 ('+r.engine+')</h3>' + r.skills.map(s => \`
     <div class="card" style="cursor:default">

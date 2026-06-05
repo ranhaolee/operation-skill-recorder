@@ -7,19 +7,29 @@ import { segment, correlate } from './correlate.js';
 import { buildIR } from './ir.js';
 import { ANTHROPIC_API_KEY, LLM_MODEL } from './config.js';
 
-export function synthesizeRuleBased(events) {
-  const tasks = segment(events);
-  return tasks.map((task) => buildIR(task, correlate(task), { generatedBy: 'rule-based' }));
+export function synthesizeRuleBased(events, opts = {}) {
+  const tasks = segment(events, { split: opts.split });
+  return tasks.map((task, i) => {
+    // honor a user-supplied name; suffix when a recording yields multiple skills
+    const name = opts.name
+      ? tasks.length > 1
+        ? `${opts.name} (${i + 1})`
+        : opts.name
+      : undefined;
+    return buildIR(task, correlate(task), { generatedBy: 'rule-based', name });
+  });
 }
 
-export async function synthesize(events, engine = 'rule') {
-  const base = synthesizeRuleBased(events);
+export async function synthesize(events, engine = 'rule', opts = {}) {
+  const base = synthesizeRuleBased(events, opts);
   if (engine !== 'llm' || !ANTHROPIC_API_KEY) return base;
 
   const refined = [];
   for (const ir of base) {
     try {
-      refined.push(await refineWithLLM(ir));
+      const r = await refineWithLLM(ir);
+      // an explicit user name always wins over the LLM's suggestion
+      refined.push(opts.name ? { ...r, name: ir.name, slug: ir.slug } : r);
     } catch (err) {
       refined.push({ ...ir, generatedBy: `rule-based (llm failed: ${err.message})` });
     }
