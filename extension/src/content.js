@@ -16,11 +16,22 @@
   }
 })();
 
+let contextDead = false;
 function relay(event) {
+  if (contextDead) return;
   try {
-    chrome.runtime.sendMessage({ kind: 'osr-event', event });
-  } catch {
-    /* background not ready / context invalidated */
+    chrome.runtime.sendMessage({ kind: 'osr-event', event }, () => {
+      // reading lastError prevents "Unchecked runtime.lastError" noise
+      void chrome.runtime.lastError;
+    });
+  } catch (e) {
+    // The extension was reloaded/updated while this page stayed open: the old
+    // content script can no longer reach the background. Make it LOUD instead of
+    // silently dropping every interaction.
+    if (/context invalidated|Extension context/i.test(e.message || '')) {
+      contextDead = true;
+      console.error('[OSR] 扩展已被重新加载，本页面的录制已失效 —— 请刷新此页面后重新开始录制。');
+    }
   }
 }
 
