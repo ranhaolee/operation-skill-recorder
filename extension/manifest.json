@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Operation Skill Recorder",
+  "version": "0.1.0",
+  "description": "捕捉浏览器中的用户操作流与 API 调用，上报到本地服务用于生成技能。",
+  "permissions": ["storage", "scripting", "activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/injected.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Operation Skill Recorder"
+  }
+}

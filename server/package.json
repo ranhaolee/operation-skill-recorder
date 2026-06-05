@@ -1,0 +1,14 @@
+{
+  "name": "osr-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Operation Skill Recorder — local ingest server + rule-based skill synthesizer (zero runtime deps)",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

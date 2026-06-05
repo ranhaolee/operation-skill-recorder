@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# captured data (raw event store)
+server/data/
+
+# generated skills output (keep the dir, ignore contents)
+skills/*
+!skills/.gitkeep
+
+# env / secrets
+.env
+*.local
+
+# logs
+*.log
+
+# OS
+Thumbs.db
+.DS_Store

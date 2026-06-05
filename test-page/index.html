@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>Demo 工单系统</title>
+<style>
+  body { font:15px/1.6 system-ui,sans-serif; max-width:560px; margin:40px auto; padding:0 16px; }
+  h1 { font-size:20px; }
+  label { display:block; margin:12px 0 4px; font-weight:600; }
+  input, select, textarea { width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; font:inherit; }
+  button { margin-top:16px; padding:10px 16px; border:0; border-radius:6px; background:#2563eb; color:#fff; font-size:15px; cursor:pointer; }
+  #log { margin-top:20px; padding:12px; background:#f4f6fa; border-radius:6px; font-family:monospace; font-size:13px; white-space:pre-wrap; }
+  .ok { color:#15803d; }
+</style>
+</head>
+<body>
+  <h1>Demo 工单系统</h1>
+  <p>这是一个用于演示录制的迷你"系统"。填写并提交会发起真实的 <code>fetch</code> 调用（打到一个公开测试 API），用来验证扩展能否捕捉 UI + API。</p>
+
+  <label>标题</label>
+  <input id="title" data-testid="ticket-title" placeholder="例如：登录页报错" />
+
+  <label>优先级</label>
+  <select id="priority" data-testid="ticket-priority">
+    <option value="low">低</option>
+    <option value="medium">中</option>
+    <option value="high">高</option>
+  </select>
+
+  <label>负责人</label>
+  <input id="assignee" name="assignee" placeholder="例如：zhang.san" />
+
+  <label>描述</label>
+  <textarea id="desc" rows="3" placeholder="问题详情…"></textarea>
+
+  <button id="submit" data-testid="submit-ticket">提交工单</button>
+
+  <div id="log">就绪。</div>
+
+<script>
+  const log = (m, ok) => { const d=document.getElementById('log'); d.innerHTML += '\n' + (ok?'<span class="ok">'+m+'</span>':m); };
+
+  document.getElementById('submit').addEventListener('click', async () => {
+    const payload = {
+      title: document.getElementById('title').value,
+      priority: document.getElementById('priority').value,
+      assignee: document.getElementById('assignee').value,
+      description: document.getElementById('desc').value,
+    };
+    log('POST /posts (创建工单) …');
+    try {
+      // jsonplaceholder 是公开测试 API，返回 201 + {id}
+      const res = await fetch('https://jsonplaceholder.typicode.com/posts', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      log('✓ 工单已创建，ticketId = ' + data.id, true);
+    } catch (e) {
+      log('✗ 失败: ' + e.message);
+    }
+  });
+</script>
+</body>
+</html>
