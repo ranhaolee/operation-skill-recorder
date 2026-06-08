@@ -32,6 +32,7 @@ export const DASHBOARD_HTML = `<!doctype html>
   h3 { margin:16px 0 8px; font-size:13px; color:var(--mut); text-transform:uppercase; letter-spacing:.04em; }
   .empty { color:var(--mut); padding:30px; text-align:center; }
   .pill { font-size:11px; color:var(--mut); }
+  .t { font-family:ui-monospace,Consolas,monospace; font-size:11px; color:var(--mut); margin-right:8px; display:inline-block; min-width:120px; }
 </style>
 </head>
 <body>
@@ -75,7 +76,8 @@ async function openSession(id) {
   current = id;
   await refresh();
   const r = await fetch(API + '/api/sessions/' + encodeURIComponent(id) + '/events').then(x => x.json());
-  const evs = r.events.map(e => renderEvent(e)).join('');
+  const t0 = r.events.reduce((m, e) => (e.ts && (m === 0 || e.ts < m) ? e.ts : m), 0);
+  const evs = r.events.map(e => renderEvent(e, t0)).join('');
   document.getElementById('detail').innerHTML = \`
     <div class="row">
       <strong>会话 \${id.slice(0,8)}</strong>
@@ -98,19 +100,30 @@ async function openSession(id) {
     <div>\${evs}</div>\`;
 }
 
-function renderEvent(e) {
+function fmtClock(ts) {
+  const d = new Date(ts), p = n => String(n).padStart(2, '0');
+  return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+}
+function timeCell(e, t0) {
+  if (!e.ts) return '<span class="t"></span>';
+  const rel = t0 ? ' +' + ((e.ts - t0) / 1000).toFixed(1) + 's' : '';
+  return \`<span class="t" title="\${esc(new Date(e.ts).toLocaleString())}">\${fmtClock(e.ts)}<span style="opacity:.55">\${rel}</span></span>\`;
+}
+
+function renderEvent(e, t0) {
+  const time = timeCell(e, t0);
   if (e.type === 'api_call') {
     const req = e.request||{}, res = e.response||{};
-    return \`<div class="ev"><span class="tag api">API</span>
+    return \`<div class="ev">\${time}<span class="tag api">API</span>
       <span class="mono">\${esc(req.method||'')} \${esc(req.url||'')}</span>
       → \${res.status??''} <span class="pill">\${res.durationMs??''}ms</span></div>\`;
   }
   if (e.type === 'navigation') {
-    return \`<div class="ev"><span class="tag">NAV</span> <span class="mono">\${esc(e.pageUrl||'')}</span></div>\`;
+    return \`<div class="ev">\${time}<span class="tag">NAV</span> <span class="mono">\${esc(e.pageUrl||'')}</span></div>\`;
   }
   const t = e.target||{};
   const val = e.value!=null ? ' = "'+esc(String(e.value).slice(0,40))+'"' : '';
-  return \`<div class="ev"><span class="tag ui">UI</span>
+  return \`<div class="ev">\${time}<span class="tag ui">UI</span>
     <b>\${esc(e.action||'')}</b> \${esc(t.text||t.selector||'')}\${val}</div>\`;
 }
 

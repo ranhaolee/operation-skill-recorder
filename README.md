@@ -89,7 +89,10 @@ node src/server.js
 
 ## 关键设计与已知限制
 
-- **响应体捕捉**靠在页面上下文重写 `fetch`/`XHR`（`injected.js`）。少数站点的 CSP 可能拦截脚本注入，此时 UI 仍能捕捉、API 可能缺失。
+- **响应体捕捉**靠在页面主上下文（MAIN world）重写 `fetch`/`XHR`（`injected.js` 现为 `world: "MAIN"` 的声明式内容脚本）。相比 v1 的 `<script>` 注入，这样**不再被站点 CSP 拦截**，真实系统的 API 也能稳定捕捉。
+- **iframe / 已打开的标签页**：内容脚本以 `all_frames: true` 注入，能录到嵌在 iframe 里的系统；点"开始录制"时还会用 `chrome.scripting` 主动给当前标签页补注入，避免"录制前就开着的页面录不到"。
+- **只录当前标签页**：开始录制时记录当时的活动标签页，之后只采集该标签页（含其 iframe）的操作；切到其他标签页、或被录页面新开的标签页都不会录入（`background.js` 的 `recordingTabId`）。
+- **不录录制器自身**：Dashboard 每 5s 轮询 `/api/sessions`，这类打向本服务 `/ingest`、`/api` 的请求，以及发生在 Dashboard 页面上的操作，都会在上报前被丢弃（`background.js` 的 `isRecorderOwnEvent`）；仅 `/test-page` 演示页例外。
 - **元素定位**优先 `data-testid` / `id` / `name` / `aria-label`，回退到结构化 CSS 路径，以提升技能回放的健壮性。
 - **脱敏**：`authorization`/`cookie` 等请求头、`password`/`token` 等字段、以及 password 输入框的值，在落库前即被替换为 `«redacted»`。
 - **录制开关**：仅在显式"开始录制"后才捕捉，避免误采集。
